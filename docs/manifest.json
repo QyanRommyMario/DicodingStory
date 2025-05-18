@@ -1,0 +1,17 @@
+{
+  "name": "Dicoding Story App",
+  "short_name": "Story App",
+  "description": "Aplikasi berbagi cerita dari Dicoding Indonesia",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563EB",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
