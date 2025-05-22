@@ -33,6 +33,7 @@
   "dependencies": {
     "@fontsource/inter": "^5.0.5",
     "leaflet": "^1.9.4",
-    "sweetalert2": "^11.6.13"
+    "sweetalert2": "^11.6.13",
+    "workbox-precaching": "^7.3.0"
   }
 }

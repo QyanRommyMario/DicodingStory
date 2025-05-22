@@ -1,6 +1,7 @@
 const { merge } = require("webpack-merge");
 const common = require("./webpack.common.js");
 const path = require("path");
+const WorkboxPlugin = require("workbox-webpack-plugin");
 
 module.exports = merge(common, {
   mode: "development",
@@ -18,4 +19,10 @@ module.exports = merge(common, {
     compress: true,
     historyApiFallback: true,
   },
+  plugins: [
+    new WorkboxPlugin.InjectManifest({
+      swSrc: path.resolve(__dirname, "src/public/service-worker.js"),
+      swDest: "service-worker.js",
+    }),
+  ],
 });

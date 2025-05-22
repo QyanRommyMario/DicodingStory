@@ -1,3 +1,7 @@
+import { precacheAndRoute } from "workbox-precaching";
+
+precacheAndRoute(self.__WB_MANIFEST);
+
 const CACHE_NAME = "dicoding-story-v1";
 const urlsToCache = [
   "/",
@@ -12,29 +16,25 @@ const urlsToCache = [
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches
-      .open(CACHE_NAME)
-      .then((cache) => cache.addAll(urlsToCache))
-      .then(() => self.skipWaiting())
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(urlsToCache))
   );
+  self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
   const cacheWhitelist = [CACHE_NAME];
   event.waitUntil(
-    caches
-      .keys()
-      .then((cacheNames) =>
-        Promise.all(
-          cacheNames.map((cacheName) => {
-            if (!cacheWhitelist.includes(cacheName)) {
-              return caches.delete(cacheName);
-            }
-          })
-        )
+    caches.keys().then((cacheNames) =>
+      Promise.all(
+        cacheNames.map((cacheName) => {
+          if (!cacheWhitelist.includes(cacheName)) {
+            return caches.delete(cacheName);
+          }
+        })
       )
-      .then(() => self.clients.claim())
+    )
   );
+  self.clients.claim();
 });
 
 self.addEventListener("fetch", (event) => {
@@ -73,13 +73,14 @@ function fetchAndCache(request) {
   });
 }
 
+// PUSH NOTIFICATION
 self.addEventListener("push", (event) => {
   let notificationData = {
     title: "New Story",
     options: {
       body: "Someone shared a new story!",
-      icon: "/favicon.ico",
-      badge: "/favicon.ico",
+      icon: "/favicon.png",
+      badge: "/favicon.png",
       data: {
         url: "/",
       },
@@ -104,7 +105,6 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-
   const urlToOpen = event.notification.data?.url || "/";
 
   event.waitUntil(
@@ -119,6 +119,7 @@ self.addEventListener("notificationclick", (event) => {
   );
 });
 
+// BACKGROUND SYNC
 self.addEventListener("sync", (event) => {
   if (event.tag === "sync-new-stories") {
     event.waitUntil(syncOfflineStories());

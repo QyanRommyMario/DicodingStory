@@ -57,6 +57,7 @@ module.exports = {
           from: path.resolve(__dirname, "src/public"),
           to: path.resolve(__dirname, "dist"),
           globOptions: {
+            // Ignore semua service worker files untuk menghindari konflik
             ignore: ["**/service-worker.js"],
           },
         },

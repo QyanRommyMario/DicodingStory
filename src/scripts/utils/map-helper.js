@@ -1,6 +1,19 @@
 import API_CONFIG from "../config/api-config.js";
 import L from "leaflet";
 
+// Fix untuk Leaflet icons di bundler environment
+import iconRetinaUrl from "leaflet/dist/images/marker-icon-2x.png";
+import iconUrl from "leaflet/dist/images/marker-icon.png";
+import shadowUrl from "leaflet/dist/images/marker-shadow.png";
+
+// Hapus default icon URL dan set yang baru
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl,
+  iconUrl,
+  shadowUrl,
+});
+
 class MapHelper {
   constructor() {
     this._map = null;
@@ -176,6 +189,13 @@ class MapHelper {
     thumbnail.src = story.photoUrl;
     thumbnail.alt = `Photo by ${story.name}`;
     thumbnail.className = "map-popup__thumbnail";
+
+    // Error handling untuk gambar
+    thumbnail.onerror = function () {
+      this.src = "/images/placeholder-image.jpg"; // atau URL placeholder lainnya
+      this.alt = "Image not available";
+    };
+
     popupContent.appendChild(thumbnail);
 
     const infoDiv = document.createElement("div");
