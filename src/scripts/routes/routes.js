@@ -1,6 +1,7 @@
 import HomePresenter from "../presenters/home-presenter.js";
 import DetailPresenter from "../presenters/detail-presenter.js";
 import AddStoryPresenter from "../presenters/add-story-presenter.js";
+import FavoritePresenter from "../presenters/favorite-presenter.js";
 import LoginPresenter from "../presenters/login-presenter.js";
 import RegisterPresenter from "../presenters/register-presenter.js";
 import { applyViewTransition } from "../utils/view-transition.js";
@@ -11,6 +12,7 @@ const routes = {
   "/": HomePresenter,
   "/detail/:id": DetailPresenter,
   "/add": AddStoryPresenter,
+  "/favorites": FavoritePresenter, // Use FavoritePresenter
   "/login": LoginPresenter,
   "/register": RegisterPresenter,
 };
@@ -126,7 +128,7 @@ class Router {
   }
 
   _isProtectedRoute(route) {
-    const protectedRoutes = ["/add", "/detail"];
+    const protectedRoutes = ["/add", "/detail", "/favorites"];
     return protectedRoutes.some((r) => route.startsWith(r));
   }
 

@@ -148,27 +148,137 @@ async function initServiceWorker() {
 }
 
 async function initIndexedDB() {
-  try {
-    const stories = await StoryIdb.getAllStories();
-    console.log(`IndexedDB initialized with ${stories.length} stories`);
+  const maxRetries = 3;
+  let attempt = 0;
 
-    window.StoryIdb = StoryIdb;
-  } catch (error) {
-    console.error("Failed to initialize IndexedDB:", error);
+  while (attempt < maxRetries) {
+    try {
+      console.log(
+        `IndexedDB initialization attempt ${attempt + 1}/${maxRetries}`
+      );
+
+      // Test database connection first
+      await StoryIdb._checkDatabaseHealth();
+
+      // Try to get existing stories
+      const stories = await StoryIdb.getAllStories();
+      console.log(
+        `IndexedDB initialized successfully with ${stories.length} stories`
+      );
+
+      // Make StoryIdb available globally for debugging
+      window.StoryIdb = StoryIdb;
+
+      return true;
+    } catch (error) {
+      attempt++;
+      console.error(
+        `IndexedDB initialization attempt ${attempt} failed:`,
+        error
+      );
+
+      if (
+        error.message &&
+        error.message.includes("object stores was not found")
+      ) {
+        console.log("Attempting to reset database due to schema mismatch...");
+
+        try {
+          await StoryIdb.resetDatabase();
+          console.log("Database reset completed, retrying initialization...");
+          continue;
+        } catch (resetError) {
+          console.error("Failed to reset database:", resetError);
+        }
+      }
+
+      if (attempt === maxRetries) {
+        console.error(
+          "Failed to initialize IndexedDB after all retries:",
+          error
+        );
+
+        // Show user-friendly error message
+        Swal.fire({
+          title: "Database Error",
+          text: "There was an issue initializing the local database. Some features may not work properly. Please try refreshing the page.",
+          icon: "warning",
+          confirmButtonColor: "#2563EB",
+          confirmButtonText: "Refresh Page",
+        }).then((result) => {
+          if (result.isConfirmed) {
+            window.location.reload();
+          }
+        });
+
+        return false;
+      }
+
+      // Wait before retry
+      await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
+    }
   }
 }
 
 async function init() {
-  await initServiceWorker();
-  await initIndexedDB();
+  console.log("Starting application initialization...");
 
-  if (navigator.onLine) {
-    storyRepository.syncOfflineQueue();
+  try {
+    // Initialize service worker first
+    await initServiceWorker();
+
+    // Initialize IndexedDB with retry logic
+    const dbInitialized = await initIndexedDB();
+
+    if (dbInitialized && navigator.onLine) {
+      // Only sync if database is working
+      storyRepository.syncOfflineQueue();
+    }
+
+    // Make PWA installer available globally
+    window.installablePWA = installablePWA;
+
+    console.log("Application initialization completed");
+  } catch (error) {
+    console.error("Critical error during application initialization:", error);
+
+    Swal.fire({
+      title: "Initialization Error",
+      text: "There was a critical error starting the application. Please refresh the page and try again.",
+      icon: "error",
+      confirmButtonColor: "#2563EB",
+      confirmButtonText: "Refresh Page",
+    }).then(() => {
+      window.location.reload();
+    });
   }
-
-  window.installablePWA = installablePWA;
 }
 
+// Add global error handler for unhandled IndexedDB errors
+window.addEventListener("error", (event) => {
+  if (
+    event.error &&
+    event.error.message &&
+    event.error.message.includes("object stores was not found")
+  ) {
+    console.error("Unhandled IndexedDB error detected:", event.error);
+
+    // Attempt to reset database
+    StoryIdb.resetDatabase()
+      .then(() => {
+        console.log("Database reset due to unhandled error");
+        window.location.reload();
+      })
+      .catch((resetError) => {
+        console.error(
+          "Failed to reset database after unhandled error:",
+          resetError
+        );
+      });
+  }
+});
+
+// Initialize when DOM is ready
 document.addEventListener("DOMContentLoaded", init);
 
 export default installablePWA;

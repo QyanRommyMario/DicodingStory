@@ -47,7 +47,11 @@ module.exports = merge(common, {
       clientsClaim: true,
       skipWaiting: true,
       cleanupOutdatedCaches: true,
-      swDest: "service-worker.js",
+      /**
+       * ✅ Ganti nama file output Workbox untuk hindari konflik
+       * dengan service worker buatan sendiri
+       */
+      swDest: "workbox-sw.js",
       runtimeCaching: [
         {
           urlPattern: /^https:\/\/cdnjs\.cloudflare\.com\/.*/i,

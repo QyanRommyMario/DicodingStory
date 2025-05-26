@@ -2,6 +2,7 @@ const createDetailTemplate = ({
   isLoading = false,
   error = null,
   story = null,
+  isFavorited = false,
 }) => {
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -86,13 +87,28 @@ const createDetailTemplate = ({
       `
       : "";
 
+  const favoriteButtonClass = isFavorited
+    ? "button favorite-button favorited"
+    : "button favorite-button";
+  const favoriteIcon = isFavorited ? "fas fa-heart" : "far fa-heart";
+  const favoriteText = isFavorited
+    ? "Remove from Favorites"
+    : "Add to Favorites";
+
   return `
       <section class="detail">
         <div class="detail__header">
           <h2 class="detail__title">Story Details</h2>
-          <a href="#/" class="button secondary">
-            <i class="fas fa-arrow-left"></i> Back to Home
-          </a>
+          <div class="detail__actions">
+            <button id="favoriteButton" class="${favoriteButtonClass}" title="${favoriteText}">
+              <i class="${favoriteIcon}"></i> ${
+    isFavorited ? "Favorited" : "Add to Favorites"
+  }
+            </button>
+            <a href="#/" class="button secondary">
+              <i class="fas fa-arrow-left"></i> Back to Home
+            </a>
+          </div>
         </div>
         
         <article class="story-detail">
@@ -126,6 +142,56 @@ const createDetailTemplate = ({
           </div>
         </article>
       </section>
+      
+      <style>
+        .detail__header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 2rem;
+          flex-wrap: wrap;
+          gap: 1rem;
+        }
+        
+        .detail__actions {
+          display: flex;
+          gap: 1rem;
+          align-items: center;
+        }
+        
+        .favorite-button {
+          background-color: #6b7280;
+          color: white;
+          border: 2px solid #6b7280;
+          transition: all 0.3s ease;
+        }
+        
+        .favorite-button:hover {
+          background-color: #ef4444;
+          border-color: #ef4444;
+        }
+        
+        .favorite-button.favorited {
+          background-color: #ef4444;
+          border-color: #ef4444;
+        }
+        
+        .favorite-button.favorited:hover {
+          background-color: #dc2626;
+          border-color: #dc2626;
+        }
+        
+        @media (max-width: 768px) {
+          .detail__header {
+            flex-direction: column;
+            align-items: stretch;
+          }
+          
+          .detail__actions {
+            justify-content: center;
+          }
+        }
+      </style>
     `;
 };
 

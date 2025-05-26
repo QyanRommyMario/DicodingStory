@@ -2,16 +2,32 @@
   "name": "Dicoding Story App",
   "short_name": "Story App",
   "description": "Aplikasi berbagi cerita dari Dicoding Indonesia",
-  "start_url": "/index.html",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "portrait-primary",
   "background_color": "#ffffff",
   "theme_color": "#2563EB",
+  "categories": ["social", "education"],
+  "lang": "id",
   "icons": [
     {
-      "src": "/favicon.png",
-      "sizes": "48x48",
+      "src": "/icon192.png",
+      "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icon512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

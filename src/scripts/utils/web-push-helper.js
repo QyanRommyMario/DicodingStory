@@ -17,7 +17,10 @@ class WebPushHelper {
     }
 
     try {
+      // Wait for service worker to be ready
       this._swRegistration = await navigator.serviceWorker.ready;
+
+      // Check current subscription status
       this._isSubscribed = await this._checkSubscription();
       this._initialized = true;
 
@@ -33,7 +36,11 @@ class WebPushHelper {
   }
 
   _isPushSupported() {
-    return "serviceWorker" in navigator && "PushManager" in window;
+    return (
+      "serviceWorker" in navigator &&
+      "PushManager" in window &&
+      "Notification" in window
+    );
   }
 
   async subscribe() {
@@ -41,7 +48,15 @@ class WebPushHelper {
       throw new Error("Web Push Helper initialization failed");
     }
 
+    // Check if already subscribed
+    if (this._isSubscribed) {
+      console.log("Already subscribed to push notifications");
+      return true;
+    }
+
     try {
+      console.log("Starting subscription process...");
+
       const subscription = await this._swRegistration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: this._urlBase64ToUint8Array(
@@ -49,8 +64,14 @@ class WebPushHelper {
         ),
       });
 
+      console.log("Browser subscription successful:", subscription);
+
       const subscriptionData = this._formatSubscriptionForApi(subscription);
+      console.log("Formatted subscription data:", subscriptionData);
+
+      // Send subscription to API
       await storyRepository.subscribeToPushNotifications(subscriptionData);
+      console.log("Subscription sent to API successfully");
 
       this._isSubscribed = true;
       this._showSuccessNotification(
@@ -60,6 +81,8 @@ class WebPushHelper {
 
       return subscriptionData;
     } catch (error) {
+      console.error("Subscription failed:", error);
+
       let errorMessage = "Gagal mengaktifkan notifikasi.";
 
       if (error.name === "NotAllowedError") {
@@ -67,6 +90,9 @@ class WebPushHelper {
           "Izin notifikasi ditolak. Mohon aktifkan izin notifikasi di pengaturan browser Anda.";
       } else if (error.name === "InvalidStateError") {
         errorMessage = "Anda sudah berlangganan notifikasi sebelumnya.";
+      } else if (error.message && error.message.includes("API")) {
+        errorMessage =
+          "Gagal menyimpan langganan ke server. Silakan coba lagi.";
       }
 
       this._showErrorNotification("Gagal Aktivasi Notifikasi", errorMessage);
@@ -84,18 +110,27 @@ class WebPushHelper {
         await this._swRegistration.pushManager.getSubscription();
 
       if (!subscription) {
+        console.log("No active subscription found");
         this._isSubscribed = false;
         return true;
       }
 
       const endpoint = subscription.endpoint;
+      console.log("Unsubscribing from:", endpoint);
+
+      // Unsubscribe from browser
       const unsubscribeResult = await subscription.unsubscribe();
 
       if (!unsubscribeResult) {
         throw new Error("Failed to unsubscribe from push service");
       }
 
+      console.log("Browser unsubscription successful");
+
+      // Remove subscription from API
       await storyRepository.unsubscribeFromPushNotifications(endpoint);
+      console.log("Subscription removed from API successfully");
+
       this._isSubscribed = false;
 
       this._showInfoNotification(
@@ -105,9 +140,18 @@ class WebPushHelper {
 
       return true;
     } catch (error) {
+      console.error("Unsubscribe failed:", error);
+
+      let errorMessage =
+        error.message || "Terjadi kesalahan saat menonaktifkan notifikasi.";
+      if (error.message && error.message.includes("API")) {
+        errorMessage =
+          "Gagal menghapus langganan dari server, tapi notifikasi sudah dinonaktifkan.";
+      }
+
       this._showErrorNotification(
         "Gagal Menonaktifkan Notifikasi",
-        error.message || "Terjadi kesalahan saat menonaktifkan notifikasi."
+        errorMessage
       );
       return false;
     }
@@ -121,7 +165,15 @@ class WebPushHelper {
     try {
       const subscription =
         await this._swRegistration.pushManager.getSubscription();
-      return Boolean(subscription);
+      const hasSubscription = Boolean(subscription);
+
+      if (hasSubscription) {
+        console.log("Active subscription found:", subscription.endpoint);
+      } else {
+        console.log("No active subscription");
+      }
+
+      return hasSubscription;
     } catch (error) {
       console.error("Error checking subscription:", error);
       return false;
@@ -188,6 +240,16 @@ class WebPushHelper {
       throw new Error("Browser ini tidak mendukung notifikasi");
     }
 
+    // Check current permission
+    if (Notification.permission === "granted") {
+      console.log("Notification permission already granted");
+      return await this.subscribe();
+    }
+
+    if (Notification.permission === "denied") {
+      throw new Error("Izin notifikasi sudah ditolak sebelumnya");
+    }
+
     return new Promise((resolve) => {
       Swal.fire({
         title: "Aktifkan Notifikasi?",
@@ -201,7 +263,9 @@ class WebPushHelper {
       }).then(async (result) => {
         if (result.isConfirmed) {
           try {
+            console.log("Requesting notification permission...");
             const permission = await Notification.requestPermission();
+            console.log("Permission result:", permission);
 
             if (permission === "granted") {
               await this.subscribe();
@@ -214,6 +278,7 @@ class WebPushHelper {
 
             resolve(permission);
           } catch (error) {
+            console.error("Permission request failed:", error);
             this._showErrorNotification(
               "Terjadi Kesalahan",
               "Gagal meminta izin notifikasi. Silakan coba lagi nanti."
@@ -221,6 +286,7 @@ class WebPushHelper {
             resolve("denied");
           }
         } else {
+          console.log("User dismissed notification permission request");
           resolve("dismissed");
         }
       });
@@ -233,6 +299,35 @@ class WebPushHelper {
 
   getRegistration() {
     return this._swRegistration;
+  }
+
+  // Method untuk testing - mengirim notifikasi test
+  async sendTestNotification() {
+    if (!this._isSubscribed) {
+      throw new Error("Not subscribed to push notifications");
+    }
+
+    // This would typically be called from your backend
+    // For testing, you can use Chrome DevTools > Application > Service Workers > Push
+    console.log("To test notifications, use Chrome DevTools:");
+    console.log("1. Go to Application tab");
+    console.log("2. Click on Service Workers");
+    console.log("3. Find your service worker");
+    console.log("4. Click 'Push' button and enter test data");
+
+    const testData = {
+      title: "Test Notification",
+      options: {
+        body: "This is a test push notification!",
+        icon: "/favicon.png",
+        badge: "/favicon.png",
+        data: {
+          url: "/",
+        },
+      },
+    };
+
+    console.log("Test notification data:", JSON.stringify(testData));
   }
 }
 
